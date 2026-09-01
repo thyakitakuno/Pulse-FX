@@ -3,6 +3,7 @@ import { BcbClient } from '../../infra/clients/bcb.client';
 import { VariationCalculatorService } from './domain/service/variation-calculator.service';
 import { IndicatorController } from './indicator.controller';
 import { IndicatorRepository } from './repository/indicator.repository';
+import { GetDashboardUseCase } from './usecase/get-dashboard.usecase';
 import { SyncFxRatesUseCase } from './usecase/sync-fx-rates.usecase';
 
 @Module({
@@ -11,6 +12,7 @@ import { SyncFxRatesUseCase } from './usecase/sync-fx-rates.usecase';
     { provide: 'IndicatorRepositoryOutPort', useClass: IndicatorRepository },
     { provide: 'BcbClientOutPort', useClass: BcbClient },
     { provide: 'SyncFxRatesInPort', useClass: SyncFxRatesUseCase },
+    { provide: 'GetDashboardInPort', useClass: GetDashboardUseCase },
     VariationCalculatorService,
   ],
 })

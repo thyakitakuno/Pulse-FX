@@ -9,6 +9,10 @@ describe('SyncFxRatesUseCase', () => {
       upsertObservations: jest.fn(
         async (_indicatorId, observations) => observations.length,
       ),
+      findAll: jest.fn(async () => []),
+      findRecentObservations: jest.fn(
+        async (_indicatorId: string, _limit: number) => [],
+      ),
     };
 
     const bcbClient: jest.Mocked<BcbClientOutPort> = {

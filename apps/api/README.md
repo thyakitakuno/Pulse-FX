@@ -1,99 +1,114 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Pulse FX — API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Backend do Pulse FX: NestJS + TypeScript, PostgreSQL via Prisma. Autenticação, catálogo de indicadores, sincronização com fontes públicas (BCB, FRED) e cálculo de variação percentual.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Stack
 
-## Description
+- Node.js + TypeScript + NestJS
+- PostgreSQL + Prisma (schema, migrations, seed)
+- JWT (`@nestjs/jwt` + Passport) e header `x-api-key` para rotas administrativas
+- Jest (unitários e e2e)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Estrutura do projeto
 
-## Project setup
+```
+src/
+├── application/
+│   ├── auth/
+│   │   ├── domain/entity/       → User (interface; sem invariante a proteger, só reconstrução a partir do banco)
+│   │   ├── dto/request|response → validação de entrada (class-validator) e forma de saída
+│   │   ├── enums/                → UserRole
+│   │   ├── ports/in               → contrato do use case (LoginInPort)
+│   │   ├── ports/out              → contrato do repositório (UserRepositoryOutPort)
+│   │   ├── repository/           → implementação Prisma do port out
+│   │   ├── strategies/            → JwtStrategy (Passport)
+│   │   ├── usecase/              → LoginUseCase
+│   │   ├── auth.controller.ts
+│   │   └── auth.module.ts
+│   └── indicator/
+│       ├── config/                → catálogo de indicadores por fonte (ex.: fx-indicators.config.ts)
+│       ├── domain/entity/        → Indicator, Observation (interfaces)
+│       ├── domain/service/       → VariationCalculatorService (regra de variação %, lógica de domínio pura)
+│       ├── dto/response/
+│       ├── enums/                 → IndicatorSource, IndicatorFrequency
+│       ├── ports/in               → GetDashboardInPort, SyncFxRatesInPort
+│       ├── ports/out              → IndicatorRepositoryOutPort, BcbClientOutPort
+│       ├── repository/           → implementação Prisma
+│       ├── usecase/              → GetDashboardUseCase, SyncFxRatesUseCase
+│       ├── indicator.controller.ts
+│       └── indicator.module.ts
+├── common/
+│   └── guards/
+│       └── auth.guard.ts         → aceita JWT (Bearer) ou header x-api-key
+├── infra/
+│   ├── clients/
+│   │   └── bcb.client.ts         → integração com a API PTAX (Olinda/BCB)
+│   └── persistence/
+│       ├── prisma.service.ts
+│       └── prisma.module.ts
+├── app.module.ts
+└── main.ts
 
-```bash
-$ npm install
+prisma/
+├── schema.prisma
+├── migrations/
+└── seed.ts                        → cria o usuário inicial (Paul Julius Reuter, role ADMIN)
+
+test/
+├── auth/login.e2e-spec.ts
+├── global-setup.ts                → cria um banco Postgres temporário (nome aleatório) por execução
+├── global-teardown.ts             → apaga o banco temporário ao final
+└── helpers/
 ```
 
-## Compile and run the project
+Cada domínio segue o mesmo formato: `ports` (contratos) → `repository`/`usecase` (implementações) → `controller` (fino, só delega). Objetos de domínio são interfaces simples — só viram classe com comportamento próprio se houver um invariante real para proteger (não é o caso aqui até agora).
 
-```bash
-# development
-$ npm run start
+## Variáveis de ambiente
 
-# watch mode
-$ npm run start:dev
+Copiar `.env.test` como referência de quais variáveis existem, ou ver `.env.example` na raiz do monorepo. Para desenvolvimento local, criar `apps/api/.env` com:
 
-# production mode
-$ npm run start:prod
+```
+DATABASE_URL="postgresql://pulsefx:pulsefx@localhost:5432/pulsefx?schema=public"
+JWT_SECRET="..."
+API_KEY="..."
+SEED_ADMIN_NAME="Paul Julius Reuter"
+SEED_ADMIN_USERNAME="paul"
+SEED_ADMIN_PASSWORD="..."
+BCB_BASE_URL="https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata"
 ```
 
-## Run tests
+`DATABASE_URL` aqui aponta para `localhost` porque os comandos abaixo rodam no host, fora do container — dentro do `docker-compose`, o hostname do Postgres é `postgres`.
+
+## Como rodar
 
 ```bash
-# unit tests
-$ npm run test
+# na raiz do monorepo
+cp .env.example .env
+docker compose up -d postgres
 
-# e2e tests
-$ npm run test:e2e
+# dentro de apps/api
+npm install
+npx prisma generate
+npx prisma migrate deploy
+npx prisma db seed
 
-# test coverage
-$ npm run test:cov
+npm run start:dev
 ```
 
-## Deployment
+## Endpoints
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+| Método | Rota                  | Auth               | Descrição                                                                          |
+| ------ | --------------------- | ------------------ | ---------------------------------------------------------------------------------- |
+| POST   | `/auth/login`         | pública            | Autentica por `username`/`password`, retorna `accessToken` (JWT, expira em 1 dia). |
+| GET    | `/indicators`         | pública            | Dashboard: nome, último valor, data de referência e variação % de cada indicador.  |
+| POST   | `/indicators/sync/fx` | JWT ou `x-api-key` | Sincroniza USD-BRL e EUR-BRL a partir do BCB (PTAX, últimos 30 dias, idempotente). |
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## Testes
 
 ```bash
-$ npm install -g mau
-$ mau deploy
+npm run test        # unitários
+npm run test:e2e     # e2e — cria um banco Postgres temporário por execução e apaga ao final
+npm run lint
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Os testes e2e precisam do Postgres do `docker-compose` rodando (`docker compose up -d postgres`); o resto (banco de teste, migration, seed) é provisionado automaticamente pelo `global-setup.ts`.

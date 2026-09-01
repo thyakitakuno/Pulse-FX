@@ -1,5 +1,6 @@
 import {
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Inject,
@@ -7,6 +8,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '../../common/guards/auth.guard';
+import { IndicatorSummaryResDTO } from './dto/response/indicator-summary.res.dto';
+import { GetDashboardInPort } from './ports/in/get-dashboard.in-port';
 import {
   SyncFxRatesInPort,
   SyncFxRatesResult,
@@ -17,7 +20,14 @@ export class IndicatorController {
   constructor(
     @Inject('SyncFxRatesInPort')
     private readonly syncFxRatesInPort: SyncFxRatesInPort,
+    @Inject('GetDashboardInPort')
+    private readonly getDashboardInPort: GetDashboardInPort,
   ) {}
+
+  @Get()
+  async dashboard(): Promise<IndicatorSummaryResDTO[]> {
+    return this.getDashboardInPort.execute();
+  }
 
   @UseGuards(AuthGuard)
   @Post('sync/fx')

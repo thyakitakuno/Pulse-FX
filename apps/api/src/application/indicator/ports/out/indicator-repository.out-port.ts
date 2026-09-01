@@ -1,3 +1,5 @@
+import { Indicator } from '../../domain/entity/indicator.entity';
+import { Observation } from '../../domain/entity/observation.entity';
 import { IndicatorFrequency } from '../../enums/indicator-frequency.enum';
 import { IndicatorSource } from '../../enums/indicator-source.enum';
 
@@ -11,15 +13,15 @@ export interface IndicatorCatalogEntry {
   limitations: string;
 }
 
-export interface ObservationInput {
-  date: string;
-  value: number;
-}
-
 export interface IndicatorRepositoryOutPort {
   upsertCatalogEntry(entry: IndicatorCatalogEntry): Promise<string>;
   upsertObservations(
     indicatorId: string,
-    observations: ObservationInput[],
+    observations: Observation[],
   ): Promise<number>;
+  findAll(): Promise<Indicator[]>;
+  findRecentObservations(
+    indicatorId: string,
+    limit: number,
+  ): Promise<Observation[]>;
 }
