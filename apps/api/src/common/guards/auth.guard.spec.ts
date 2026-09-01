@@ -16,7 +16,7 @@ function createContext(headers: Record<string, string>): ExecutionContext {
 }
 
 describe('AuthGuard', () => {
-  it('deve autorizar e marcar o usuário como ADMIN quando o header x-api-key confere', async () => {
+  it('should authorize and mark the user as ADMIN when the x-api-key header matches', async () => {
     const configService = {
       get: jest.fn().mockReturnValue('expected-api-key'),
     } as unknown as ConfigService;
@@ -31,7 +31,7 @@ describe('AuthGuard', () => {
     expect(request.user).toEqual({ sub: 'api-key', role: UserRole.ADMIN });
   });
 
-  it('não deve autorizar via API_KEY quando o header não confere', async () => {
+  it('should not authorize via API_KEY when the header does not match', async () => {
     const configService = {
       get: jest.fn().mockReturnValue('expected-api-key'),
     } as unknown as ConfigService;
