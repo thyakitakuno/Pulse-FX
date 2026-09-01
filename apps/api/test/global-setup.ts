@@ -5,7 +5,7 @@ import { Client } from 'pg';
 import { withDatabaseName } from './helpers/database-url.helper';
 
 export default async function globalSetup(): Promise<void> {
-  config({ path: `${__dirname}/../.env` });
+  config({ path: `${__dirname}/../.env.test` });
 
   const baseUrl = process.env.DATABASE_URL;
   if (!baseUrl) {

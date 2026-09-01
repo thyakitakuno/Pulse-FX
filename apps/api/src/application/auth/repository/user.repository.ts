@@ -13,12 +13,12 @@ export class UserRepository implements UserRepositoryOutPort {
       return null;
     }
 
-    return new User({
+    return {
       id: record.id,
       name: record.name,
       username: record.username,
       passwordHash: record.password,
       role: record.role,
-    });
+    };
   }
 }

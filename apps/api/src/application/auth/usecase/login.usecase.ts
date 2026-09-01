@@ -22,18 +22,15 @@ export class LoginUseCase implements LoginInPort {
       throw new UnauthorizedException('Credenciais inválidas');
     }
 
-    const isPasswordValid = await argon2.verify(
-      user.getPasswordHash(),
-      password,
-    );
+    const isPasswordValid = await argon2.verify(user.passwordHash, password);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Credenciais inválidas');
     }
 
     const accessToken = await this.jwtService.signAsync({
-      sub: user.getId(),
-      username: user.getUsername(),
-      role: user.getRole(),
+      sub: user.id,
+      username: user.username,
+      role: user.role,
     });
 
     return { accessToken };
