@@ -31,10 +31,10 @@ src/
 │       ├── domain/service/       → VariationCalculatorService (regra de variação %, lógica de domínio pura)
 │       ├── dto/response/
 │       ├── enums/                 → IndicatorSource, IndicatorFrequency
-│       ├── ports/in               → GetDashboardInPort, SyncFxRatesInPort
-│       ├── ports/out              → IndicatorRepositoryOutPort, BcbClientOutPort
+│       ├── ports/in               → GetDashboardInPort, SyncFxRatesInPort, SyncMacroIndicatorsInPort
+│       ├── ports/out              → IndicatorRepositoryOutPort, BcbClientOutPort, FredClientOutPort
 │       ├── repository/           → implementação Prisma
-│       ├── usecase/              → GetDashboardUseCase, SyncFxRatesUseCase
+│       ├── usecase/              → GetDashboardUseCase, SyncFxRatesUseCase, SyncMacroIndicatorsUseCase
 │       ├── indicator.controller.ts
 │       └── indicator.module.ts
 ├── common/
@@ -42,7 +42,8 @@ src/
 │       └── auth.guard.ts         → aceita JWT (Bearer) ou header x-api-key
 ├── infra/
 │   ├── clients/
-│   │   └── bcb.client.ts         → integração com a API PTAX (Olinda/BCB)
+│   │   ├── bcb.client.ts         → integração com a API PTAX (Olinda/BCB)
+│   │   └── fred.client.ts        → integração com a API do FRED (fred/series/observations)
 │   └── persistence/
 │       ├── prisma.service.ts
 │       └── prisma.module.ts
@@ -75,7 +76,11 @@ SEED_ADMIN_NAME="Paul Julius Reuter"
 SEED_ADMIN_USERNAME="paul"
 SEED_ADMIN_PASSWORD="..."
 BCB_BASE_URL="https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata"
+FRED_BASE_URL="https://api.stlouisfed.org/fred"
+FRED_API_KEY="..."
 ```
+
+`FRED_API_KEY` precisa ser registrada em https://fredaccount.stlouisfed.org/apikeys.
 
 `DATABASE_URL` aqui aponta para `localhost` porque os comandos abaixo rodam no host, fora do container — dentro do `docker-compose`, o hostname do Postgres é `postgres`.
 
@@ -102,6 +107,7 @@ npm run start:dev
 | POST   | `/auth/login`         | pública            | Autentica por `username`/`password`, retorna `accessToken` (JWT, expira em 1 dia). |
 | GET    | `/indicators`         | pública            | Dashboard: nome, último valor, data de referência e variação % de cada indicador.  |
 | POST   | `/indicators/sync/fx` | JWT ou `x-api-key` | Sincroniza USD-BRL e EUR-BRL a partir do BCB (PTAX, últimos 30 dias, idempotente). |
+| POST   | `/indicators/sync/macro` | JWT ou `x-api-key` | Sincroniza FEDFUNDS e CPIAUCSL a partir do FRED (últimos ~13 meses, idempotente). |
 
 ## Testes
 
