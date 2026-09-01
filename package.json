@@ -1,0 +1,20 @@
+{
+  "name": "pulse-fx",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pulse FX — MVP de acompanhamento de câmbio (BRL) e indicadores macroeconômicos.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run start:dev --workspace apps/api",
+    "dev:web": "npm run dev --workspace apps/web",
+    "build": "npm run build --workspace packages/shared && npm run build --workspace apps/api && npm run build --workspace apps/web",
+    "lint": "npm run lint --workspace apps/api && npm run lint --workspace apps/web",
+    "test": "npm run test --workspace apps/api && npm run test --workspace apps/web"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
