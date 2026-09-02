@@ -8,4 +8,6 @@ export interface Indicator {
   source: IndicatorSource;
   frequency: IndicatorFrequency;
   unit: string;
+  description: string;
+  limitations: string;
 }

@@ -20,9 +20,11 @@ export interface IndicatorRepositoryOutPort {
     observations: Observation[],
   ): Promise<number>;
   findAll(): Promise<Indicator[]>;
+  findByCode(code: string): Promise<Indicator | null>;
   findRecentObservations(
     indicatorId: string,
     limit: number,
   ): Promise<Observation[]>;
   findLastSyncedAt(code: string): Promise<Date | null>;
+  findLatestObservationDate(code: string): Promise<Date | null>;
 }

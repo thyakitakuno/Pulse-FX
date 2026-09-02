@@ -1,6 +1,11 @@
 import { IndicatorRepositoryOutPort } from '../ports/out/indicator-repository.out-port';
 import { VariationCalculatorService } from '../domain/service/variation-calculator.service';
+import { IndicatorSummaryBuilderService } from '../domain/service/indicator-summary-builder.service';
 import { GetDashboardUseCase } from './get-dashboard.usecase';
+
+function createSummaryBuilder(): IndicatorSummaryBuilderService {
+  return new IndicatorSummaryBuilderService(new VariationCalculatorService());
+}
 
 describe('GetDashboardUseCase', () => {
   it('should return last value, reference date and variation for each indicator with data', async () => {
@@ -8,6 +13,8 @@ describe('GetDashboardUseCase', () => {
       upsertCatalogEntry: jest.fn(),
       upsertObservations: jest.fn(),
       findLastSyncedAt: jest.fn(),
+      findLatestObservationDate: jest.fn(),
+      findByCode: jest.fn(),
       findAll: jest.fn(async () => [
         {
           id: 'ind-1',
@@ -16,6 +23,9 @@ describe('GetDashboardUseCase', () => {
           source: 'BCB' as const,
           frequency: 'DAILY' as const,
           unit: 'BRL',
+          description:
+            'Taxa de câmbio de fechamento (PTAX) entre o dólar americano e o real.',
+          limitations: 'Publicada pelo Banco Central apenas em dias úteis.',
         },
       ]),
       findRecentObservations: jest.fn(
@@ -28,7 +38,7 @@ describe('GetDashboardUseCase', () => {
 
     const useCase = new GetDashboardUseCase(
       indicatorRepository,
-      new VariationCalculatorService(),
+      createSummaryBuilder(),
     );
 
     const result = await useCase.execute();
@@ -56,6 +66,8 @@ describe('GetDashboardUseCase', () => {
       upsertCatalogEntry: jest.fn(),
       upsertObservations: jest.fn(),
       findLastSyncedAt: jest.fn(),
+      findLatestObservationDate: jest.fn(),
+      findByCode: jest.fn(),
       findAll: jest.fn(async () => [
         {
           id: 'ind-2',
@@ -64,6 +76,10 @@ describe('GetDashboardUseCase', () => {
           source: 'FRED' as const,
           frequency: 'MONTHLY' as const,
           unit: '%',
+          description:
+            'Média mensal da taxa efetiva de juros do Federal Reserve dos EUA.',
+          limitations:
+            'Publicada pelo Federal Reserve com defasagem em relação ao mês de referência.',
         },
       ]),
       findRecentObservations: jest.fn(
@@ -73,7 +89,7 @@ describe('GetDashboardUseCase', () => {
 
     const useCase = new GetDashboardUseCase(
       indicatorRepository,
-      new VariationCalculatorService(),
+      createSummaryBuilder(),
     );
 
     const result = await useCase.execute();

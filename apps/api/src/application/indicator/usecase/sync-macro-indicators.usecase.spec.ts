@@ -22,6 +22,8 @@ describe('SyncMacroIndicatorsUseCase', () => {
         async (_indicatorId: string, _limit: number) => [],
       ),
       findLastSyncedAt: jest.fn(async (_code: string) => null),
+      findLatestObservationDate: jest.fn(async (_code: string) => null),
+      findByCode: jest.fn(),
     };
 
     const fredClient: jest.Mocked<FredClientOutPort> = {
@@ -93,6 +95,8 @@ describe('SyncMacroIndicatorsUseCase', () => {
         async (_indicatorId: string, _limit: number) => [],
       ),
       findLastSyncedAt: jest.fn(async (_code: string) => new Date()),
+      findLatestObservationDate: jest.fn(async (_code: string) => null),
+      findByCode: jest.fn(),
     };
 
     const fredClient: jest.Mocked<FredClientOutPort> = {
@@ -112,9 +116,58 @@ describe('SyncMacroIndicatorsUseCase', () => {
 
     expect(fredClient.fetchObservations).not.toHaveBeenCalled();
     expect(indicatorRepository.upsertCatalogEntry).not.toHaveBeenCalled();
+    expect(
+      indicatorRepository.findLatestObservationDate,
+    ).not.toHaveBeenCalled();
     expect(results).toEqual([
       { code: 'FEDFUNDS', status: 'skipped', observationsSynced: 0 },
       { code: 'CPIAUCSL', status: 'skipped', observationsSynced: 0 },
     ]);
+  });
+
+  it('should fetch only from the latest persisted observation date when the indicator already has data', async () => {
+    const latestObservationDate = new Date('2026-07-01T00:00:00.000Z');
+
+    const indicatorRepository: jest.Mocked<IndicatorRepositoryOutPort> = {
+      upsertCatalogEntry: jest.fn(async (entry) => `indicator-${entry.code}`),
+      upsertObservations: jest.fn(
+        async (_indicatorId: string, observations) => observations.length,
+      ),
+      findAll: jest.fn(async () => []),
+      findRecentObservations: jest.fn(
+        async (_indicatorId: string, _limit: number) => [],
+      ),
+      findLastSyncedAt: jest.fn(async (_code: string) => null),
+      findLatestObservationDate: jest.fn(
+        async (_code: string) => latestObservationDate,
+      ),
+      findByCode: jest.fn(),
+    };
+
+    const fredClient: jest.Mocked<FredClientOutPort> = {
+      fetchObservations: jest.fn(
+        async (_seriesId: string, _from: Date, _to: Date) => [],
+      ),
+    };
+
+    const useCase = new SyncMacroIndicatorsUseCase(
+      indicatorRepository,
+      fredClient,
+      new SyncPolicyService(),
+      createConfigService(1440),
+    );
+
+    await useCase.execute();
+
+    expect(fredClient.fetchObservations).toHaveBeenCalledWith(
+      'FEDFUNDS',
+      latestObservationDate,
+      expect.any(Date),
+    );
+    expect(fredClient.fetchObservations).toHaveBeenCalledWith(
+      'CPIAUCSL',
+      latestObservationDate,
+      expect.any(Date),
+    );
   });
 });

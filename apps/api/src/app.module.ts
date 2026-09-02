@@ -4,6 +4,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './application/auth/auth.module';
+import { FavoriteModule } from './application/favorite/favorite.module';
 import { IndicatorModule } from './application/indicator/indicator.module';
 import { PrismaModule } from './infra/persistence/prisma.module';
 
@@ -14,6 +15,7 @@ import { PrismaModule } from './infra/persistence/prisma.module';
     PrismaModule,
     AuthModule,
     IndicatorModule,
+    FavoriteModule,
   ],
   controllers: [AppController],
   providers: [AppService],

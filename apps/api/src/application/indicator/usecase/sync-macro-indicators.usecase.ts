@@ -11,7 +11,7 @@ import {
 import { FredClientOutPort } from '../ports/out/fred-client.out-port';
 import { IndicatorRepositoryOutPort } from '../ports/out/indicator-repository.out-port';
 
-const SYNC_WINDOW_DAYS = 400;
+const INITIAL_SYNC_WINDOW_DAYS = 400;
 const DEFAULT_TTL_MINUTES = 1440;
 
 @Injectable()
@@ -29,8 +29,8 @@ export class SyncMacroIndicatorsUseCase implements SyncMacroIndicatorsInPort {
 
   async execute(): Promise<SyncMacroIndicatorsResult[]> {
     const to = new Date();
-    const from = new Date(to);
-    from.setDate(from.getDate() - SYNC_WINDOW_DAYS);
+    const initialFrom = new Date(to);
+    initialFrom.setDate(initialFrom.getDate() - INITIAL_SYNC_WINDOW_DAYS);
 
     const ttlMinutes = Number(
       this.configService.get('MACRO_SYNC_TTL_MINUTES', DEFAULT_TTL_MINUTES),
@@ -54,6 +54,12 @@ export class SyncMacroIndicatorsUseCase implements SyncMacroIndicatorsInPort {
         });
         continue;
       }
+
+      const latestObservationDate =
+        await this.indicatorRepository.findLatestObservationDate(
+          macroIndicator.code,
+        );
+      const from = latestObservationDate ?? initialFrom;
 
       const indicatorId = await this.indicatorRepository.upsertCatalogEntry({
         code: macroIndicator.code,

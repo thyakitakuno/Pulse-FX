@@ -11,7 +11,7 @@ import {
 import { BcbClientOutPort } from '../ports/out/bcb-client.out-port';
 import { IndicatorRepositoryOutPort } from '../ports/out/indicator-repository.out-port';
 
-const SYNC_WINDOW_DAYS = 30;
+const INITIAL_SYNC_WINDOW_DAYS = 30;
 const DEFAULT_TTL_MINUTES = 60;
 
 @Injectable()
@@ -29,8 +29,8 @@ export class SyncFxRatesUseCase implements SyncFxRatesInPort {
 
   async execute(): Promise<SyncFxRatesResult[]> {
     const to = new Date();
-    const from = new Date(to);
-    from.setDate(from.getDate() - SYNC_WINDOW_DAYS);
+    const initialFrom = new Date(to);
+    initialFrom.setDate(initialFrom.getDate() - INITIAL_SYNC_WINDOW_DAYS);
 
     const ttlMinutes = Number(
       this.configService.get('FX_SYNC_TTL_MINUTES', DEFAULT_TTL_MINUTES),
@@ -54,6 +54,12 @@ export class SyncFxRatesUseCase implements SyncFxRatesInPort {
         });
         continue;
       }
+
+      const latestObservationDate =
+        await this.indicatorRepository.findLatestObservationDate(
+          fxIndicator.code,
+        );
+      const from = latestObservationDate ?? initialFrom;
 
       const indicatorId = await this.indicatorRepository.upsertCatalogEntry({
         code: fxIndicator.code,

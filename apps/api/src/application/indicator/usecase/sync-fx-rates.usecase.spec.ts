@@ -22,6 +22,8 @@ describe('SyncFxRatesUseCase', () => {
         async (_indicatorId: string, _limit: number) => [],
       ),
       findLastSyncedAt: jest.fn(async (_code: string) => null),
+      findLatestObservationDate: jest.fn(async (_code: string) => null),
+      findByCode: jest.fn(),
     };
 
     const bcbClient: jest.Mocked<BcbClientOutPort> = {
@@ -93,6 +95,8 @@ describe('SyncFxRatesUseCase', () => {
         async (_indicatorId: string, _limit: number) => [],
       ),
       findLastSyncedAt: jest.fn(async (_code: string) => new Date()),
+      findLatestObservationDate: jest.fn(async (_code: string) => null),
+      findByCode: jest.fn(),
     };
 
     const bcbClient: jest.Mocked<BcbClientOutPort> = {
@@ -112,9 +116,58 @@ describe('SyncFxRatesUseCase', () => {
 
     expect(bcbClient.fetchClosingQuotes).not.toHaveBeenCalled();
     expect(indicatorRepository.upsertCatalogEntry).not.toHaveBeenCalled();
+    expect(
+      indicatorRepository.findLatestObservationDate,
+    ).not.toHaveBeenCalled();
     expect(results).toEqual([
       { code: 'USD-BRL', status: 'skipped', observationsSynced: 0 },
       { code: 'EUR-BRL', status: 'skipped', observationsSynced: 0 },
     ]);
+  });
+
+  it('should fetch only from the latest persisted observation date when the indicator already has data', async () => {
+    const latestObservationDate = new Date('2026-08-29T00:00:00.000Z');
+
+    const indicatorRepository: jest.Mocked<IndicatorRepositoryOutPort> = {
+      upsertCatalogEntry: jest.fn(async (entry) => `indicator-${entry.code}`),
+      upsertObservations: jest.fn(
+        async (_indicatorId, observations) => observations.length,
+      ),
+      findAll: jest.fn(async () => []),
+      findRecentObservations: jest.fn(
+        async (_indicatorId: string, _limit: number) => [],
+      ),
+      findLastSyncedAt: jest.fn(async (_code: string) => null),
+      findLatestObservationDate: jest.fn(
+        async (_code: string) => latestObservationDate,
+      ),
+      findByCode: jest.fn(),
+    };
+
+    const bcbClient: jest.Mocked<BcbClientOutPort> = {
+      fetchClosingQuotes: jest.fn(
+        async (_currency: string, _from: Date, _to: Date) => [],
+      ),
+    };
+
+    const useCase = new SyncFxRatesUseCase(
+      indicatorRepository,
+      bcbClient,
+      new SyncPolicyService(),
+      createConfigService(60),
+    );
+
+    await useCase.execute();
+
+    expect(bcbClient.fetchClosingQuotes).toHaveBeenCalledWith(
+      'USD',
+      latestObservationDate,
+      expect.any(Date),
+    );
+    expect(bcbClient.fetchClosingQuotes).toHaveBeenCalledWith(
+      'EUR',
+      latestObservationDate,
+      expect.any(Date),
+    );
   });
 });

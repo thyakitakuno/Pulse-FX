@@ -71,7 +71,27 @@ export class IndicatorRepository implements IndicatorRepositoryOutPort {
       source: record.source,
       frequency: record.frequency,
       unit: record.unit,
+      description: record.description,
+      limitations: record.limitations,
     }));
+  }
+
+  async findByCode(code: string): Promise<Indicator | null> {
+    const record = await this.prisma.indicator.findUnique({ where: { code } });
+    if (!record) {
+      return null;
+    }
+
+    return {
+      id: record.id,
+      code: record.code,
+      name: record.name,
+      source: record.source,
+      frequency: record.frequency,
+      unit: record.unit,
+      description: record.description,
+      limitations: record.limitations,
+    };
   }
 
   async findRecentObservations(
@@ -97,5 +117,15 @@ export class IndicatorRepository implements IndicatorRepositoryOutPort {
     });
 
     return record?.updatedAt ?? null;
+  }
+
+  async findLatestObservationDate(code: string): Promise<Date | null> {
+    const record = await this.prisma.observation.findFirst({
+      where: { indicator: { code } },
+      orderBy: { date: 'desc' },
+      select: { date: true },
+    });
+
+    return record?.date ?? null;
   }
 }
