@@ -70,6 +70,7 @@ prisma/
 test/
 ├── auth/login.e2e-spec.ts
 ├── indicator/indicator.e2e-spec.ts
+├── indicator/indicator.repository.e2e-spec.ts → testa o repositório Prisma isolado (upsert idempotente, findLatestObservationDate etc.)
 ├── favorite/favorite.e2e-spec.ts
 ├── global-setup.ts                → cria um banco Postgres temporário (nome aleatório) por execução
 ├── global-teardown.ts             → apaga o banco temporário ao final
