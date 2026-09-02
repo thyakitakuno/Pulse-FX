@@ -1,9 +1,17 @@
+import { ConfigService } from '@nestjs/config';
+import { SyncPolicyService } from '../domain/service/sync-policy.service';
 import { FredClientOutPort } from '../ports/out/fred-client.out-port';
 import { IndicatorRepositoryOutPort } from '../ports/out/indicator-repository.out-port';
 import { SyncMacroIndicatorsUseCase } from './sync-macro-indicators.usecase';
 
+function createConfigService(ttlMinutes: number): ConfigService {
+  return {
+    get: jest.fn().mockReturnValue(ttlMinutes),
+  } as unknown as ConfigService;
+}
+
 describe('SyncMacroIndicatorsUseCase', () => {
-  it('should sync every configured macro indicator with its own catalog entry and observations', async () => {
+  it('should sync every configured macro indicator when none was synced before', async () => {
     const indicatorRepository: jest.Mocked<IndicatorRepositoryOutPort> = {
       upsertCatalogEntry: jest.fn(async (entry) => `indicator-${entry.code}`),
       upsertObservations: jest.fn(
@@ -13,6 +21,7 @@ describe('SyncMacroIndicatorsUseCase', () => {
       findRecentObservations: jest.fn(
         async (_indicatorId: string, _limit: number) => [],
       ),
+      findLastSyncedAt: jest.fn(async (_code: string) => null),
     };
 
     const fredClient: jest.Mocked<FredClientOutPort> = {
@@ -27,6 +36,8 @@ describe('SyncMacroIndicatorsUseCase', () => {
     const useCase = new SyncMacroIndicatorsUseCase(
       indicatorRepository,
       fredClient,
+      new SyncPolicyService(),
+      createConfigService(1440),
     );
 
     const results = await useCase.execute();
@@ -66,8 +77,44 @@ describe('SyncMacroIndicatorsUseCase', () => {
     );
 
     expect(results).toEqual([
-      { code: 'FEDFUNDS', observationsSynced: 2 },
-      { code: 'CPIAUCSL', observationsSynced: 2 },
+      { code: 'FEDFUNDS', status: 'synced', observationsSynced: 2 },
+      { code: 'CPIAUCSL', status: 'synced', observationsSynced: 2 },
+    ]);
+  });
+
+  it('should skip an indicator synced within the TTL window without calling the FRED client', async () => {
+    const indicatorRepository: jest.Mocked<IndicatorRepositoryOutPort> = {
+      upsertCatalogEntry: jest.fn(async (entry) => `indicator-${entry.code}`),
+      upsertObservations: jest.fn(
+        async (_indicatorId: string, _observations) => 0,
+      ),
+      findAll: jest.fn(async () => []),
+      findRecentObservations: jest.fn(
+        async (_indicatorId: string, _limit: number) => [],
+      ),
+      findLastSyncedAt: jest.fn(async (_code: string) => new Date()),
+    };
+
+    const fredClient: jest.Mocked<FredClientOutPort> = {
+      fetchObservations: jest.fn(
+        async (_seriesId: string, _from: Date, _to: Date) => [],
+      ),
+    };
+
+    const useCase = new SyncMacroIndicatorsUseCase(
+      indicatorRepository,
+      fredClient,
+      new SyncPolicyService(),
+      createConfigService(1440),
+    );
+
+    const results = await useCase.execute();
+
+    expect(fredClient.fetchObservations).not.toHaveBeenCalled();
+    expect(indicatorRepository.upsertCatalogEntry).not.toHaveBeenCalled();
+    expect(results).toEqual([
+      { code: 'FEDFUNDS', status: 'skipped', observationsSynced: 0 },
+      { code: 'CPIAUCSL', status: 'skipped', observationsSynced: 0 },
     ]);
   });
 });

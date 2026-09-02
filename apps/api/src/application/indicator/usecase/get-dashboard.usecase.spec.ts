@@ -7,6 +7,7 @@ describe('GetDashboardUseCase', () => {
     const indicatorRepository: jest.Mocked<IndicatorRepositoryOutPort> = {
       upsertCatalogEntry: jest.fn(),
       upsertObservations: jest.fn(),
+      findLastSyncedAt: jest.fn(),
       findAll: jest.fn(async () => [
         {
           id: 'ind-1',
@@ -54,6 +55,7 @@ describe('GetDashboardUseCase', () => {
     const indicatorRepository: jest.Mocked<IndicatorRepositoryOutPort> = {
       upsertCatalogEntry: jest.fn(),
       upsertObservations: jest.fn(),
+      findLastSyncedAt: jest.fn(),
       findAll: jest.fn(async () => [
         {
           id: 'ind-2',

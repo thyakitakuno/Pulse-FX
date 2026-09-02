@@ -89,4 +89,13 @@ export class IndicatorRepository implements IndicatorRepositoryOutPort {
       value: record.value.toNumber(),
     }));
   }
+
+  async findLastSyncedAt(code: string): Promise<Date | null> {
+    const record = await this.prisma.indicator.findUnique({
+      where: { code },
+      select: { updatedAt: true },
+    });
+
+    return record?.updatedAt ?? null;
+  }
 }

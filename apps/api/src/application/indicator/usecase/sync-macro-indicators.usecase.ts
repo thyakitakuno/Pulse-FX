@@ -1,5 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { MACRO_INDICATORS } from '../config/macro-indicators.config';
+import { SyncPolicyService } from '../domain/service/sync-policy.service';
 import { IndicatorFrequency } from '../enums/indicator-frequency.enum';
 import { IndicatorSource } from '../enums/indicator-source.enum';
 import {
@@ -9,10 +11,8 @@ import {
 import { FredClientOutPort } from '../ports/out/fred-client.out-port';
 import { IndicatorRepositoryOutPort } from '../ports/out/indicator-repository.out-port';
 
-// Janela maior que a do FX (30 dias): séries mensais publicam ~1 ponto por mês, então
-// buscamos ~13 meses pra ter histórico suficiente pra regra de variação e pra tela de
-// detalhe, mesmo com a defasagem de publicação do FRED.
 const SYNC_WINDOW_DAYS = 400;
+const DEFAULT_TTL_MINUTES = 1440;
 
 @Injectable()
 export class SyncMacroIndicatorsUseCase implements SyncMacroIndicatorsInPort {
@@ -23,6 +23,8 @@ export class SyncMacroIndicatorsUseCase implements SyncMacroIndicatorsInPort {
     private readonly indicatorRepository: IndicatorRepositoryOutPort,
     @Inject('FredClientOutPort')
     private readonly fredClient: FredClientOutPort,
+    private readonly syncPolicy: SyncPolicyService,
+    private readonly configService: ConfigService,
   ) {}
 
   async execute(): Promise<SyncMacroIndicatorsResult[]> {
@@ -30,9 +32,29 @@ export class SyncMacroIndicatorsUseCase implements SyncMacroIndicatorsInPort {
     const from = new Date(to);
     from.setDate(from.getDate() - SYNC_WINDOW_DAYS);
 
+    const ttlMinutes = Number(
+      this.configService.get('MACRO_SYNC_TTL_MINUTES', DEFAULT_TTL_MINUTES),
+    );
+
     const results: SyncMacroIndicatorsResult[] = [];
 
     for (const macroIndicator of MACRO_INDICATORS) {
+      const lastSyncedAt = await this.indicatorRepository.findLastSyncedAt(
+        macroIndicator.code,
+      );
+
+      if (!this.syncPolicy.isDue(lastSyncedAt, ttlMinutes)) {
+        this.logger.log(
+          `Skipping ${macroIndicator.code}: synced recently (TTL not expired)`,
+        );
+        results.push({
+          code: macroIndicator.code,
+          status: 'skipped',
+          observationsSynced: 0,
+        });
+        continue;
+      }
+
       const indicatorId = await this.indicatorRepository.upsertCatalogEntry({
         code: macroIndicator.code,
         name: macroIndicator.name,
@@ -57,7 +79,11 @@ export class SyncMacroIndicatorsUseCase implements SyncMacroIndicatorsInPort {
       this.logger.log(
         `Synced ${observationsSynced} observations for ${macroIndicator.code}`,
       );
-      results.push({ code: macroIndicator.code, observationsSynced });
+      results.push({
+        code: macroIndicator.code,
+        status: 'synced',
+        observationsSynced,
+      });
     }
 
     return results;

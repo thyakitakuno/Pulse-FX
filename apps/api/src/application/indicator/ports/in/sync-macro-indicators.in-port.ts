@@ -1,5 +1,6 @@
 export interface SyncMacroIndicatorsResult {
   code: string;
+  status: 'synced' | 'skipped';
   observationsSynced: number;
 }
 

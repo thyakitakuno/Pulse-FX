@@ -2,8 +2,10 @@ import { Module } from '@nestjs/common';
 import { BcbClient } from '../../infra/clients/bcb.client';
 import { FredClient } from '../../infra/clients/fred.client';
 import { VariationCalculatorService } from './domain/service/variation-calculator.service';
+import { SyncPolicyService } from './domain/service/sync-policy.service';
 import { IndicatorController } from './indicator.controller';
 import { IndicatorRepository } from './repository/indicator.repository';
+import { IndicatorSyncScheduler } from './scheduler/indicator-sync.scheduler';
 import { GetDashboardUseCase } from './usecase/get-dashboard.usecase';
 import { SyncFxRatesUseCase } from './usecase/sync-fx-rates.usecase';
 import { SyncMacroIndicatorsUseCase } from './usecase/sync-macro-indicators.usecase';
@@ -21,6 +23,8 @@ import { SyncMacroIndicatorsUseCase } from './usecase/sync-macro-indicators.usec
     },
     { provide: 'GetDashboardInPort', useClass: GetDashboardUseCase },
     VariationCalculatorService,
+    SyncPolicyService,
+    IndicatorSyncScheduler,
   ],
 })
 export class IndicatorModule {}

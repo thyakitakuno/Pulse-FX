@@ -28,12 +28,13 @@ src/
 │   └── indicator/
 │       ├── config/                → catálogo de indicadores por fonte (ex.: fx-indicators.config.ts)
 │       ├── domain/entity/        → Indicator, Observation (interfaces)
-│       ├── domain/service/       → VariationCalculatorService (regra de variação %, lógica de domínio pura)
+│       ├── domain/service/       → VariationCalculatorService, SyncPolicyService
 │       ├── dto/response/
 │       ├── enums/                 → IndicatorSource, IndicatorFrequency
 │       ├── ports/in               → GetDashboardInPort, SyncFxRatesInPort, SyncMacroIndicatorsInPort
 │       ├── ports/out              → IndicatorRepositoryOutPort, BcbClientOutPort, FredClientOutPort
 │       ├── repository/           → implementação Prisma
+│       ├── scheduler/            → IndicatorSyncScheduler (job de hora em hora)
 │       ├── usecase/              → GetDashboardUseCase, SyncFxRatesUseCase, SyncMacroIndicatorsUseCase
 │       ├── indicator.controller.ts
 │       └── indicator.module.ts
@@ -78,7 +79,11 @@ SEED_ADMIN_PASSWORD="..."
 BCB_BASE_URL="https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata"
 FRED_BASE_URL="https://api.stlouisfed.org/fred"
 FRED_API_KEY="..."
+FX_SYNC_TTL_MINUTES="60"
+MACRO_SYNC_TTL_MINUTES="1440"
 ```
+
+As duas últimas são opcionais — caem nos defaults acima se ausentes.
 
 `FRED_API_KEY` precisa ser registrada em https://fredaccount.stlouisfed.org/apikeys.
 
@@ -99,6 +104,12 @@ npx prisma db seed
 
 npm run start:dev
 ```
+
+## Política de sincronização
+
+- **TTL:** cada sync verifica quando o indicador foi sincronizado pela última vez (`Indicator.updatedAt`) antes de chamar BCB/FRED. Se estiver dentro do TTL, pula a chamada externa (`status: "skipped"` na resposta). TTL configurável via `FX_SYNC_TTL_MINUTES` (default 60) e `MACRO_SYNC_TTL_MINUTES` (default 1440).
+- **Job agendado:** `IndicatorSyncScheduler` tem um cron por tipo de série, casando com a frequência de cada uma — FX de hora em hora (`EVERY_HOUR`), macro uma vez por dia (`EVERY_DAY_AT_MIDNIGHT`).
+- **Endpoint admin:** `POST /indicators/sync/fx` e `POST /indicators/sync/macro`, protegidos por `AuthGuard`, para forçar sync sob demanda (útil pra teste/debug — mesmo assim respeitam o TTL).
 
 ## Endpoints
 

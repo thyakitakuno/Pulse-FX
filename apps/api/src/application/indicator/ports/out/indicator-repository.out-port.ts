@@ -24,4 +24,5 @@ export interface IndicatorRepositoryOutPort {
     indicatorId: string,
     limit: number,
   ): Promise<Observation[]>;
+  findLastSyncedAt(code: string): Promise<Date | null>;
 }
