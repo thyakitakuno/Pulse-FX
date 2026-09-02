@@ -38,6 +38,7 @@ cp .env.example .env
 docker compose up --build
 ```
 
+- Web: http://localhost:3000
 - API: http://localhost:3001
 - Postgres: localhost:5432
 
@@ -60,6 +61,8 @@ Ver `.env.example` na raiz para a lista completa com valores de exemplo. Resumo:
 | `FRED_BASE_URL`/`FRED_API_KEY`                  | base e chave da API do FRED — registrar em https://fredaccount.stlouisfed.org/apikeys |
 | `FX_SYNC_TTL_MINUTES`/`MACRO_SYNC_TTL_MINUTES`  | política de sincronização (ver abaixo) — opcionais, com default |
 | `SYNC_ON_STARTUP`                               | dispara um sync real (BCB e FRED) assim que a API sobe, pra já existir dado no banco no primeiro acesso — opcional, default `true` no compose |
+| `WEB_ORIGIN`                                    | origem do frontend autorizada via CORS — opcional, default `http://localhost:3000` |
+| `NEXT_PUBLIC_API_URL` (apps/web)                | URL da API usada pelo frontend — opcional, default `http://localhost:3001` |
 
 ## Séries escolhidas
 
@@ -94,17 +97,20 @@ Ver detalhes em `apps/api/README.md`. Resumo: TTL por indicador (evita chamadas 
 - **Arquitetura em camadas sem DDD tático completo:** ports (contratos) → repository/usecase (implementações) → controller (fino). Objetos de domínio (`Indicator`, `Observation`, `User`) são interfaces simples, não classes — só viram entidade com comportamento se houver um invariante real para proteger, o que não é o caso aqui. A única lógica de domínio de verdade (regra de variação %, política de TTL) fica em `domain/service/`.
 - **Auth sem cadastro:** o MVP nasce com um único usuário via seed (sem e-mail, só `username`/`password`/`role`); não há endpoint de criação de usuário pela API.
 - **Guard combinado (JWT ou `x-api-key`) só para rotas admin de sync** — os endpoints de favoritos exigem JWT de verdade (não aceitam `x-api-key`), já que a identidade sintética da API key não corresponde a um usuário real no banco.
+- **Sessão do navegador via cookie `httpOnly`, não `localStorage`:** `POST /auth/login` seta o JWT num cookie `httpOnly`/`SameSite=Lax` (inacessível a JavaScript, protegido contra XSS) além de devolvê-lo no corpo da resposta (uso programático — é o que os testes e2e e o `x-api-key` continuam usando via header `Authorization`). O `JwtStrategy` aceita os dois caminhos (header ou cookie). O frontend usa um Middleware do Next.js (`apps/web/src/proxy.ts`) pra checar a sessão **no servidor**, antes de qualquer página protegida carregar — sem guarda de rota no cliente, sem `localStorage`, sem risco de mismatch entre o que o servidor renderiza e o que o navegador mostra no primeiro instante.
 - **Migrations com SQL versionado via Prisma** (`prisma migrate`), não `db push` — histórico auditável.
-- **Dockerfile único-estágio para a API** (sem multi-stage otimizado): prioriza simplicidade e confiabilidade de build sobre tamanho de imagem, adequado ao escopo de um MVP de alguns dias.
+- **Dockerfiles único-estágio** (API e web, sem multi-stage otimizado): prioriza simplicidade e confiabilidade de build sobre tamanho de imagem, adequado ao escopo de um MVP de alguns dias. O container do `web` roda `next start` sobre o build de produção; `NEXT_PUBLIC_API_URL` precisa ser passado como build arg (não variável de runtime), porque o Next.js embute esse valor no bundle do navegador durante o `next build` — quem faz as chamadas é o navegador do usuário, não o container, então a URL precisa ser alcançável a partir da máquina do usuário (`localhost:3001`), não um hostname interno do Docker.
 
 ## Como rodar o frontend web
 
-`apps/web` ainda é o scaffold padrão do `create-next-app`, sem telas implementadas.
+Via `docker compose up --build` (junto com o resto do stack) ou isolado, direto no host:
 
 ```bash
 npm install
 npm run dev:web   # http://localhost:3000
 ```
+
+A API precisa estar acessível em `NEXT_PUBLIC_API_URL` (default `http://localhost:3001`, a porta exposta pelo `docker compose`). Ver `apps/web/README.md` para detalhes da estrutura.
 
 ## Como rodar localmente sem Docker (apps/api)
 
