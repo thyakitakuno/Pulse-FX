@@ -15,5 +15,44 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://${POSTGRES_USER:-pulsefx}:${POSTGRES_PASSWORD:-pulsefx}@postgres:5432/${POSTGRES_DB:-pulsefx}
+      JWT_SECRET: ${JWT_SECRET}
+      API_KEY: ${API_KEY}
+      SEED_ADMIN_NAME: ${SEED_ADMIN_NAME}
+      SEED_ADMIN_USERNAME: ${SEED_ADMIN_USERNAME}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD}
+      BCB_BASE_URL: ${BCB_BASE_URL}
+      FRED_BASE_URL: ${FRED_BASE_URL}
+      FRED_API_KEY: ${FRED_API_KEY}
+      FX_SYNC_TTL_MINUTES: ${FX_SYNC_TTL_MINUTES:-60}
+      MACRO_SYNC_TTL_MINUTES: ${MACRO_SYNC_TTL_MINUTES:-1440}
+      SYNC_ON_STARTUP: ${SYNC_ON_STARTUP:-true}
+      WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:3000}
+    ports:
+      - '3001:3000'
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - '3000:3000'
+
 volumes:
   pulsefx-postgres-data:

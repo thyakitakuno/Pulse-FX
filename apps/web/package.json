@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "jest"
   },
   "dependencies": {
     "@pulse-fx/shared": "*",
@@ -15,11 +16,18 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.3",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
+    "jest": "^30.5.1",
+    "jest-environment-jsdom": "^30.5.1",
+    "tailwindcss": "^4.3.3",
     "typescript": "^5"
   }
 }
