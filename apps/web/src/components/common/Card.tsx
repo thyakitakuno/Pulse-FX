@@ -5,14 +5,21 @@ interface CardProps {
   children: ReactNode;
   className?: string;
   href?: string;
+  interactive?: boolean;
 }
 
 const baseClassName = 'rounded-xl border border-slate-200 bg-white shadow-sm';
 const interactiveClassName =
   'no-underline transition-all hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md';
 
-export function Card({ children, className = '', href }: CardProps) {
-  const classes = [baseClassName, href ? interactiveClassName : '', className]
+export function Card({
+  children,
+  className = '',
+  href,
+  interactive,
+}: CardProps) {
+  const isInteractive = interactive ?? Boolean(href);
+  const classes = [baseClassName, isInteractive ? interactiveClassName : '', className]
     .filter(Boolean)
     .join(' ');
 

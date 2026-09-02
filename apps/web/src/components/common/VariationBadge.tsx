@@ -35,6 +35,7 @@ export function VariationBadge({
 
   return (
     <span
+      data-testid="variation-badge"
       className={`inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${toneStyles[tone]}`}
     >
       <span aria-hidden="true">{toneArrows[tone]}</span>

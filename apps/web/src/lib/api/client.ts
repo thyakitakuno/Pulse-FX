@@ -1,5 +1,3 @@
-import { getToken } from '@/lib/auth/token';
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 export class ApiError extends Error {
@@ -12,25 +10,27 @@ export class ApiError extends Error {
 }
 
 interface ApiFetchOptions extends RequestInit {
-  auth?: boolean;
+  redirectOn401?: boolean;
 }
 
 export async function apiFetch<T>(
   path: string,
-  { auth = true, headers, ...options }: ApiFetchOptions = {},
+  { redirectOn401 = true, headers, ...options }: ApiFetchOptions = {},
 ): Promise<T> {
-  const token = auth ? getToken() : null;
-
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
     },
   });
 
   if (!response.ok) {
+    if (redirectOn401 && response.status === 401 && typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
+
     throw new ApiError(`Request to ${path} failed`, response.status);
   }
 

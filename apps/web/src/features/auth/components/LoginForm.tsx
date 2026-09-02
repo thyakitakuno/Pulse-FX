@@ -4,7 +4,6 @@ import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ApiError } from '@/lib/api/client';
 import { Spinner } from '@/components/common/Spinner';
-import { saveToken } from '@/lib/auth/token';
 import { login } from '@/features/auth/services/auth.service';
 
 export function LoginForm() {
@@ -20,9 +19,7 @@ export function LoginForm() {
     setIsSubmitting(true);
 
     try {
-      const { accessToken } = await login(username, password);
-
-      saveToken(accessToken);
+      await login(username, password);
       router.push('/dashboard');
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {

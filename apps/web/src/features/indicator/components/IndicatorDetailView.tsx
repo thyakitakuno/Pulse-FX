@@ -11,21 +11,27 @@ import {
   getIndicatorDetail,
   IndicatorDetail,
 } from '@/features/indicator/services/indicator.service';
+import { FavoriteButton } from '@/features/favorites/components/FavoriteButton';
+import { getFavorites } from '@/features/favorites/services/favorites.service';
 
 const backButtonClassName =
   'inline-flex w-fit items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50';
 
 export function IndicatorDetailView({ code }: { code: string }) {
   const [detail, setDetail] = useState<IndicatorDetail | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
 
-    getIndicatorDetail(code)
-      .then((data) => {
+    Promise.all([getIndicatorDetail(code), getFavorites()])
+      .then(([detailData, favoritesData]) => {
         if (isMounted) {
-          setDetail(data);
+          setDetail(detailData);
+          setIsFavorite(
+            favoritesData.some((favorite) => favorite.code === code),
+          );
         }
       })
       .catch((err) => {
@@ -68,14 +74,24 @@ export function IndicatorDetailView({ code }: { code: string }) {
   const hasData = detail.lastValue !== null && detail.referenceDate !== null;
   const history = [...detail.observations].reverse();
 
+  function handleToggleFavorite(_code: string, nextIsFavorite: boolean) {
+    setIsFavorite(nextIsFavorite);
+  }
+
   return (
     <div className="flex w-full max-w-2xl flex-col gap-4">
       <Link href="/dashboard" className={backButtonClassName}>
         ← Voltar
       </Link>
 
-      <Card className="p-6">
-        <h2 className="text-xl font-semibold text-slate-900">
+      <Card className="relative p-6">
+        <FavoriteButton
+          code={detail.code}
+          isFavorite={isFavorite}
+          onToggled={handleToggleFavorite}
+          className="absolute top-4 right-4"
+        />
+        <h2 className="pr-8 text-xl font-semibold text-slate-900">
           {detail.name}
         </h2>
         <p className="mt-1 text-sm text-slate-500">{detail.description}</p>

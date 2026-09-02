@@ -86,6 +86,7 @@ Cada domínio segue o mesmo formato: `ports` (contratos) → `repository`/`useca
 Copiar `.env.test` como referência de quais variáveis existem, ou ver `.env.example` na raiz do monorepo. Para desenvolvimento local, criar `apps/api/.env` com:
 
 ```
+PORT="3001"
 DATABASE_URL="postgresql://pulsefx:pulsefx@localhost:5432/pulsefx?schema=public"
 JWT_SECRET="..."
 API_KEY="..."
@@ -101,7 +102,7 @@ SYNC_ON_STARTUP="true"
 WEB_ORIGIN="http://localhost:3000"
 ```
 
-As quatro últimas são opcionais — caem nos defaults acima se ausentes (`SYNC_ON_STARTUP` cai em "não sincronizar" se ausente).
+`PORT` só importa rodando a API direto no host (sem Docker) — sem ela, o Nest sobe na 3000 por padrão, a mesma porta que o `next dev` usa pro frontend. Via `docker-compose` isso não acontece (o container já expõe a 3000 interna como 3001 no host). As cinco últimas são opcionais — caem nos defaults acima se ausentes (`SYNC_ON_STARTUP` cai em "não sincronizar" se ausente).
 
 `FRED_API_KEY` precisa ser registrada em https://fredaccount.stlouisfed.org/apikeys.
 
@@ -148,7 +149,8 @@ npm run start:dev
 
 | Método | Rota                  | Auth               | Descrição                                                                          |
 | ------ | --------------------- | ------------------ | ---------------------------------------------------------------------------------- |
-| POST   | `/auth/login`         | pública            | Autentica por `username`/`password`, retorna `accessToken` (JWT, expira em 1 dia). |
+| POST   | `/auth/login`         | pública            | Autentica por `username`/`password`; retorna `accessToken` no corpo (JWT, expira em 1 dia) e também seta um cookie `httpOnly` com o mesmo token, pro navegador. |
+| POST   | `/auth/logout`        | pública            | Limpa o cookie de sessão (`204`).                                                   |
 | GET    | `/indicators`         | JWT                | Dashboard: nome, último valor, data de referência e variação % de cada indicador.  |
 | GET    | `/indicators/:code`   | JWT                | Detalhe: mesmos campos do dashboard + série histórica (30 observações para DAILY, 13 para MONTHLY). 404 se o código não existir. |
 | POST   | `/indicators/sync/fx` | JWT ou `x-api-key` | Sincroniza USD-BRL e EUR-BRL a partir do BCB (PTAX, últimos 30 dias, idempotente). |
@@ -158,6 +160,8 @@ npm run start:dev
 | DELETE | `/favorites/:code`    | JWT                | Desfavorita um indicador (idempotente — não erro se já não era favorito).         |
 
 `GET /indicators` e `GET /indicators/:code` exigem JWT de verdade (`JwtAuthGuard`), assim como `/favorites` — não aceitam `x-api-key`, que fica restrita às rotas administrativas de sync.
+
+O JWT pode chegar de duas formas — o `JwtStrategy` aceita as duas: header `Authorization: Bearer <token>` (uso programático, é o que os testes e2e usam) ou cookie `httpOnly` `pulsefx_session` (setado automaticamente no login, é o que o frontend web usa; JavaScript não consegue ler nem manipular esse cookie).
 
 ## Testes
 
