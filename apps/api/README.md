@@ -98,9 +98,10 @@ FRED_API_KEY="..."
 FX_SYNC_TTL_MINUTES="60"
 MACRO_SYNC_TTL_MINUTES="1440"
 SYNC_ON_STARTUP="true"
+WEB_ORIGIN="http://localhost:3000"
 ```
 
-As três últimas são opcionais — caem nos defaults acima se ausentes (`SYNC_ON_STARTUP` cai em "não sincronizar" se ausente).
+As quatro últimas são opcionais — caem nos defaults acima se ausentes (`SYNC_ON_STARTUP` cai em "não sincronizar" se ausente).
 
 `FRED_API_KEY` precisa ser registrada em https://fredaccount.stlouisfed.org/apikeys.
 

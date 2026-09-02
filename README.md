@@ -60,6 +60,8 @@ Ver `.env.example` na raiz para a lista completa com valores de exemplo. Resumo:
 | `FRED_BASE_URL`/`FRED_API_KEY`                  | base e chave da API do FRED — registrar em https://fredaccount.stlouisfed.org/apikeys |
 | `FX_SYNC_TTL_MINUTES`/`MACRO_SYNC_TTL_MINUTES`  | política de sincronização (ver abaixo) — opcionais, com default |
 | `SYNC_ON_STARTUP`                               | dispara um sync real (BCB e FRED) assim que a API sobe, pra já existir dado no banco no primeiro acesso — opcional, default `true` no compose |
+| `WEB_ORIGIN`                                    | origem do frontend autorizada via CORS — opcional, default `http://localhost:3000` |
+| `NEXT_PUBLIC_API_URL` (apps/web)                | URL da API usada pelo frontend — opcional, default `http://localhost:3001` |
 
 ## Séries escolhidas
 
@@ -99,12 +101,12 @@ Ver detalhes em `apps/api/README.md`. Resumo: TTL por indicador (evita chamadas 
 
 ## Como rodar o frontend web
 
-`apps/web` ainda é o scaffold padrão do `create-next-app`, sem telas implementadas.
-
 ```bash
 npm install
 npm run dev:web   # http://localhost:3000
 ```
+
+A API precisa estar acessível em `NEXT_PUBLIC_API_URL` (default `http://localhost:3001`, a porta exposta pelo `docker compose`). Ver `apps/web/README.md` para detalhes da estrutura.
 
 ## Como rodar localmente sem Docker (apps/api)
 
