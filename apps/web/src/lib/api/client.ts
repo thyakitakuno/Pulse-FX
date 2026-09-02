@@ -28,6 +28,10 @@ export async function apiFetch<T>(
 
   if (!response.ok) {
     if (redirectOn401 && response.status === 401 && typeof window !== 'undefined') {
+      await fetch(`${API_URL}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      }).catch(() => undefined);
       window.location.href = '/login';
     }
 
