@@ -5,7 +5,7 @@ Frontend do Pulse FX: Next.js (App Router) + TypeScript, consumindo a API em `ap
 ## Stack
 
 - Next.js + React + TypeScript
-- CSS puro (sem framework de estilos)
+- Tailwind CSS v4 (utilitário, via `@tailwindcss/postcss`)
 - Token JWT guardado no `localStorage` do navegador
 
 ## Estrutura do projeto
@@ -22,22 +22,37 @@ src/
 │   └── page.tsx               → redireciona para /dashboard
 │
 ├── features/
-│   └── auth/
+│   ├── auth/
+│   │   ├── services/
+│   │   │   └── auth.service.ts  → chamadas à API do domínio (ex.: login)
+│   │   └── components/
+│   │       ├── LoginForm.tsx
+│   │       └── RequireAuth.tsx  → guarda de rota: sem token, redireciona para /login
+│   ├── dashboard/
+│   │   ├── services/
+│   │   │   └── dashboard.service.ts  → GET /indicators
+│   │   └── components/
+│   │       ├── DashboardGrid.tsx     → busca os dados, cuida de loading/erro
+│   │       └── IndicatorCard.tsx     → card de um indicador (link para o detalhe)
+│   └── indicator/
 │       ├── services/
-│       │   └── auth.service.ts  → chamadas à API do domínio (ex.: login)
+│       │   └── indicator.service.ts  → GET /indicators/:code
 │       └── components/
-│           ├── LoginForm.tsx
-│           └── RequireAuth.tsx  → guarda de rota: sem token, redireciona para /login
+│           └── IndicatorDetailView.tsx  → resumo + histórico em tabela + limitações
 │
 ├── components/
 │   ├── layout/
 │   │   └── LogoutButton.tsx
 │   └── common/
+│       ├── Card.tsx             → cartão base (com/sem link), usado no dashboard e no detalhe
+│       ├── VariationBadge.tsx   → selo colorido de variação % (verde/vermelho/neutro)
+│       ├── Spinner.tsx          → indicador de carregamento, usado nas buscas à API
 │       └── Disclaimer.tsx
 │
 ├── lib/
 │   ├── api/client.ts          → cliente fetch (base URL, header de autorização)
-│   └── auth/token.ts          → leitura/escrita do token no localStorage
+│   ├── auth/token.ts          → leitura/escrita do token no localStorage
+│   └── format.ts              → formatação de valor/data/variação, compartilhada entre dashboard e detalhe
 │
 └── styles/
     └── globals.css

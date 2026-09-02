@@ -10,13 +10,19 @@ export default function DashboardGroupLayout({
 }) {
   return (
     <RequireAuth>
-      <div className="page">
-        <header className="app-header">
-          <h1 className="page-title">Pulse FX</h1>
-          <LogoutButton />
+      <div className="min-h-screen">
+        <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/80 backdrop-blur">
+          <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
+            <h1 className="text-xl font-semibold text-slate-900">
+              Pulse FX
+            </h1>
+            <LogoutButton />
+          </div>
         </header>
-        {children}
-        <Disclaimer />
+        <main className="flex flex-col items-center gap-6 px-4 py-8">
+          {children}
+          <Disclaimer />
+        </main>
       </div>
     </RequireAuth>
   );

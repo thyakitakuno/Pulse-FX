@@ -12,7 +12,11 @@ export function LogoutButton() {
   }
 
   return (
-    <button className="button-secondary" type="button" onClick={handleLogout}>
+    <button
+      type="button"
+      onClick={handleLogout}
+      className="rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-900 transition-colors hover:bg-slate-50"
+    >
       Sair
     </button>
   );
